@@ -1,0 +1,22 @@
+# cost_functions
+C0 = lambda f: 5
+C1 = lambda f: f
+C2 = lambda f: 2*f
+V1 = lambda f: 10
+V2 = lambda f: 13
+
+# edges
+A1 M1 C0
+A2 M2 C0
+A1 0 C1
+A2 0 C1
+0 M1 C2
+0 M2 C2
+
+# agents
+A1 1
+A2 1
+
+# targets
+M1 V1
+M2 V2

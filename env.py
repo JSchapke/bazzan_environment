@@ -1,8 +1,10 @@
+import os
 import gym
 import igraph
 import numpy as np
+from itertools import chain
 
-from utils import read_graph
+from utils import read_graph, get_agent_routes
 
 class Env:
     def __init__(self, graphfile, k=1, h=2):
@@ -16,98 +18,103 @@ class Env:
         self.k = k
 
         self.read_graph()
-        #read_graph(graphfile)
         self.setup() 
 
     def read_graph(self):
-        ''' sample graph '''
-        self.cost_functions = [lambda f: 5, lambda f: f, lambda f: 2*f]
-        G = igraph.Graph()
-        G.add_vertices(['A1', 'A2', 'A3', 'A4', 'A5', 'A6', 'M1', 'M2', 'M3', 'M4', 'M5', 'M6'])
+        if not os.path.isfile(self.graphfile): 
+            raise Exception('File not found!')
 
-        self.agents = np.array(['A1', 'A2', 'A3', 'A4', 'A5', 'A6'])
-        G.vs['agent'] = np.array([True] * 6 + [False] * 6)
-
-        self.targets =   np.array(['M1', 'M2', 'M3', 'M4', 'M5', 'M6'])
-        G.vs['agent'] = np.array([False] * 6 + [True] * 6)
-        G.vs['value'] =  np.array([None] * 6 + [10, 13, 10, 10, 13, 10])
-
-        G.add_edge('A1', 'M1', cost_fn=0)
-        G.add_edge('A1', 'A2', cost_fn=1)
-        G.add_edge('A2', 'M2', cost_fn=2)
-        G.add_edge('A2', 'A3', cost_fn=1)
-        G.add_edge('A3', 'M3', cost_fn=0)
-        G.add_edge('A3', 'A4', cost_fn=1)
-        G.add_edge('A4', 'M4', cost_fn=0)
-        G.add_edge('A4', 'A5', cost_fn=1)
-        G.add_edge('A5', 'M5', cost_fn=2)
-        G.add_edge('A5', 'A6', cost_fn=1)
-        G.add_edge('A6', 'M6', cost_fn=0)
+        G, agents, n_agents, targets, functions = read_graph(self.graphfile)
         self.G = G
+        self.agents = agents
+        self.n_agents = n_agents
+        self.targets = targets
+        self.functions = functions
     
     def setup(self):
         self.choices = []
         self.n_choices = []
         self.agent_targets = []
 
-        distances = self.G.shortest_paths(self.agents, self.targets)
-        self.distances = np.array(distances)
-        
         for a, agent in enumerate(self.agents):
-            _distances = self.distances[a]
-            targets = self.targets[_distances <= self.h]
-
-            #FIXME find k shortest routes
-            choices = self.G.get_shortest_paths(agent, targets)
-            n_choices = len(choices) 
+            routes = get_agent_routes(self.G, agent, h=self.h, k=self.k)
+            targets = list(routes.keys())
+            v = routes.values()
+            choices = list(chain.from_iterable(v))
+            n_choices = len(choices)
 
             self.agent_targets.append(targets)
             self.choices.append(choices)
             self.n_choices.append(n_choices)
 
-        low = np.zeros(len(self.agents))
-        high = np.array(self.n_choices) - 1
+        agents = [[i] * n for i, n in enumerate(self.n_agents)]
+        self.all_agents = np.array(agents).flatten()
+
+        low = np.zeros(len(self.all_agents))
+        high = np.array([self.n_choices[a] for a in self.all_agents]) - 1
         self.action_space = gym.spaces.Box(low=low, high=high, dtype=int)
         self.observation_space = None
+        
+        names = self.G.vs['name']
+        ids = range(len(names))
+        self.node_mapping = dict(zip(names, ids))
 
-
-    def find_k_paths(self, agent, target):
-        pass
+    def get_routes(self, actions):
+        '''
+        Returns a list with the routes taken by each agent in the given action list
+        '''
+        routes = []
+        for i, action in enumerate(actions):
+            agent = self.all_agents[i]
+            routes.append(self.choices[agent][action])
+        return routes
 
     def step(self, actions):
+        if len(actions) != len(self.all_agents):
+            raise Exception('Number of actions does not match number of agents.')
+
         paths = []
         edges = np.array([], dtype=int)
         
-        values  = np.zeros(len(self.agents))
-        costs   = np.zeros(len(self.agents))
+        targets = []
+        values  = np.zeros(len(self.all_agents))
+        costs   = np.zeros(len(self.all_agents))
         
         for i, action in enumerate(actions):
+            a = self.all_agents[i]
             if not self.legal_action(i, action):
-                rewards[i] = None
+                values[i] = np.nan
+                costs[i] = np.nan
                 paths.append(None)
                 continue
 
-            path = self.choices[i][action]
-            path_edges = self.G.get_eids(path=path)
+            path = self.choices[a][action]
+            path_ids = [self.node_mapping[node] for node in path]
+            path_edges = self.G.get_eids(path=path_ids)
             paths.append(path_edges)
             edges_ = np.unique(path_edges)
             edges = np.append(edges, edges_)
 
-            value = self.G.vs[path[-1]]['value']
-            values[i] = value
+            targets.append(path[-1])
 
         edges, flows = np.unique(edges, return_counts=True)
-        flows = dict(zip(edges, flows))
+        edge_flow = dict(zip(edges, flows))
 
         for i, path in enumerate(paths):
             if path is None:
                 continue
             cost = 0
             for edge in path:
-                flow = flows[edge]
+                flow = edge_flow[edge]
                 cf = self.G.es[edge]['cost_fn']
-                cost += self.cost_functions[cf](flow)
+                cost += self.functions[cf](flow)
 
+            t = targets[i]
+            trgts, flows = np.unique(targets, return_counts=True)
+            flow = flows[trgts == t][0]
+
+            vf = self.G.vs.find(name=t)['value']
+            values[i] = self.functions[vf](flow)
             costs[i] = cost
 
         rewards = values - costs
@@ -117,7 +124,7 @@ class Env:
         low = self.action_space.low[agent]
         high = self.action_space.high[agent]
         if action < low or action > high:
-            print(f'Invalid action {action}. Agent {agent} bounds: ({low}, {high})')
+            print(f'Invalid action {action} for agent {agent} bounds: ({low}, {high})')
             return False
         return True
 
@@ -134,34 +141,49 @@ if __name__ == '__main__':
     print('N. possible actions per agent:', [(agent, num_actions[a]) for a, agent in enumerate(env.agents)])
 
     print('-'*10, 'Test Cases', '-'*10)
-    for i in range(5):
-        print(f'Test Run N.{i}:')
+    best_reward = 0
+    best_actions = None
+    for i in range(100):
         actions = []
-        for a, agent in enumerate(env.agents):
+        for a, h in enumerate(high):
             action = np.random.randint(low[a], high[a]+1)
-            actions.append(action)
-        print('Chosen actions:', actions)
-
+            actions.append([action])
+        actions = np.array(actions).reshape(-1)
         reward = env.step(actions)
         total_reward = sum(reward)
+        if total_reward > best_reward:
+            best_reward = total_reward
+            best_actions = actions
 
-        print('Rewards:', reward)
-        print('Total Reward:', total_reward, '\n')
+        if i < 5:
+            print(f'Test Run N.{i}:')
+            print('Chosen actions:', actions)
+            print('Rewards:', reward)
+            print('Total Reward:', total_reward, '\n')
     print('-'*35)
 
-    system_optimum_actions = [0, 1, 1, 1, 1, 1]
-    system_optimum_rewards = env.step(system_optimum_actions)
-    system_optimum = sum(system_optimum_rewards)
-    print('\nSystem Optimum:')
-    print('Actions under system optimum:', system_optimum_actions)
-    print('Individual rewards under system optimum:', system_optimum_rewards)
-    print('Total reward:', system_optimum)
+    print('--- Best result after 100 random runs ---')
+    print(f'Reward {best_reward}')
+    print(f'Average per Agent {best_reward/len(high)}')
+    print('Paths:')
+    for route in env.get_routes(best_actions):
+        print(route)
 
-    ue_actions = [1, 1, 0, 2, 1, 0]
-    ue_rewards = env.step(ue_actions)
-    ue = sum(ue_rewards)
-    print('\nUser Equilibrium:')
-    print('Actions under user equilibrium:', ue_actions)
-    print('Individual rewards under user equilibrium:', ue_rewards)
-    print('Total reward:', ue)
+
+    ## DEFUNCT
+    #system_optimum_actions = [0, 1, 1, 1, 1, 1]
+    #system_optimum_rewards = env.step(system_optimum_actions)
+    #system_optimum = sum(system_optimum_rewards)
+    #print('\nSystem Optimum:')
+    #print('Actions under system optimum:', system_optimum_actions)
+    #print('Individual rewards under System Optimum:', system_optimum_rewards)
+    #print('Total reward:', system_optimum)
+
+    #ue_actions = [1, 1, 0, 2, 1, 0]
+    #ue_rewards = env.step(ue_actions)
+    #ue = sum(ue_rewards)
+    #print('\nUser Equilibrium:')
+    #print('Actions under User Equilibrium:', ue_actions)
+    #print('Individual rewards under user equilibrium:', ue_rewards)
+    #print('Total reward:', ue)
 
