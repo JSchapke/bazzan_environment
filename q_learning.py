@@ -1,3 +1,4 @@
+import copy
 import argparse
 import os
 from collections import deque
@@ -10,14 +11,10 @@ from env import Env
 class QLearning:
     def __init__(self, 
             action_space, 
-            qtables=None,
-            eps=1,
-            decay=0.9,
-            min_eps=0.01,
-            lr=0.1,
-            maxlen=1000,
-            batch_size=8,
-            update_every=10 ):
+            eps,
+            decay,
+            alpha,
+            qtables=None):
 
         self.n_agents = action_space.shape[0]
         self.high = action_space.high
@@ -30,16 +27,12 @@ class QLearning:
                 qtable = np.zeros(n)
                 self.qtables.append(qtable)
         else:
-            self.qtables = qtables
+            self.qtables = copy.deepcopy(qtables)
 
         self.eps = eps
         self.decay = decay
-        self.min_eps = min_eps
-        self.lr = lr
-        self.memory = deque(maxlen=1000)
-        self.batch_size = batch_size
-        self.update_every = update_every
-        self.t = 0
+        self.alpha = alpha
+
 
     def act(self):
         actions = []
@@ -55,24 +48,23 @@ class QLearning:
                 actions.append(action)
         return actions
 
-    def save(self, actions, rewards):
-        self.memory.append((actions, rewards))
+    def update(self, actions, rewards):
+        self.eps = self.eps * self.decay
 
-        self.t = (self.t + 1) % self.update_every
-        if self.t == 0:
-            self.update()
+        for a, qtable in enumerate(self.qtables):
+            action = actions[a]
+            reward = rewards[a]
+            qtable[action] = qtable[action] + self.alpha * (reward - qtable[action])
 
 
-    def update(self):
-        self.eps = max(self.min_eps, self.eps * self.decay)
+def init_qtables(env):
+    qtables = []
+    for agent in env.all_agents:
+        qtable = np.zeros(len(env.choices[agent]))
+        for i, route in enumerate(env.choices[agent]):
+            qtable[i] = 1 / len(route)
+        qtables.append(qtable)
 
-        if len(self.memory) >= self.batch_size:
-            batch = random.sample(self.memory, self.batch_size)
-            for actions, rewards in batch:
-                for a, qtable in enumerate(self.qtables):
-                    action = actions[a]
-                    reward = rewards[a]
-                    qtable[action] = qtable[action] + self.lr * (reward - qtable[action])
 
 def parse_args():
     parser = argparse.ArgumentParser()
@@ -80,77 +72,60 @@ def parse_args():
     parser.add_argument('netfile')
     parser.add_argument('--h', help='Max number of hops allowed by the agent.', default=2, type=int)
     parser.add_argument('--k', help='Max number of K shortest routes from an agent to a target.', default=2, type=int)
-    parser.add_argument('--episodes', help='Number of episodes to run.', default=500, type=int)
     # Agent Params
-    parser.add_argument('--eps', help='Starting epsilon for QLearning.', default=1.0, type=float)
-    parser.add_argument('--min_eps', help='Minimum epsilon for QLearning.', default=0.01, type=float)
-    parser.add_argument('--decay', help='Epsilon decay rate.', default=0.9, type=float)
-    parser.add_argument('--lr', help='Learning rate of QLearning.', default=0.1, type=float)
-    parser.add_argument('--maxlen', help='Max number of episodes to storage for QLearning.', default=1000, type=int)
-    parser.add_argument('--batch_size', help='Batch size of QLearning.', default=8, type=int)
-    parser.add_argument('--update_every', help='Update reate of QLearning.', default=10, type=int)
-
-    parser.add_argument('--outpath', help='Output directory for plot.', default='./')
+    parser.add_argument('--eps', help='Starting epsilon for QLearning.', default=.05, type=float)
+    parser.add_argument('--decay', help='Epsilon decay rate.', default=1, type=float)
+    parser.add_argument('--alpha', help='Alpha value of QLearning.', default=0.1, type=float)
+    # Simulation Params
+    parser.add_argument('--episodes', help='Number of episodes for a run of QLearning.', default=2000,type=int)
+    parser.add_argument('--runs', help='Number of runs for QLearning.', default=30, type=int)
+    parser.add_argument('--outpath', help='Output path for plot.', default='./figs/qlearn.png')
     return parser.parse_args()
 
 
 if __name__ == '__main__':
+    print('- Starting QLearning -')
     args = parse_args()
-    if not os.path.isdir(args.outpath):
-        raise Exception(f'Directory "{args.outpath}" does not exist.')
 
     env = Env(args.netfile, h=args.h, k=args.k)
     action_space = env.action_space
+    print(f'N. Agents: {len(action_space.high)}')
 
     # initialize qtable with geodesic distances of choices
-    qtables = []
-    for agent in range(action_space.shape[0]):
-        qtable = np.zeros(len(env.choices[agent]))
-        for i, route in enumerate(env.choices[agent]):
-            qtable[i] = 1 / len(route)
-        qtables.append(qtable)
+    qtables = init_qtables(env)
 
-    agent = QLearning(
-                action_space, 
-                qtables=qtables,
-                eps=args.eps,
-                decay=args.decay,
-                min_eps=args.min_eps,
-                lr=args.lr,
-                maxlen=args.maxlen,
-                batch_size=args.batch_size,
-                update_every=args.update_every )
-
-    agent_avg_rewards = []
-    system_rewards    = []
+    all_avg_rewards = np.zeros((args.runs, args.episodes))
     episodes = range(args.episodes)
-    for e in episodes:
-        actions = agent.act()
 
-        rewards = env.step(actions)
+    for r in range(args.runs):
+        agent = QLearning(
+                    action_space, 
+                    qtables=qtables,
+                    eps=args.eps,
+                    decay=args.decay,
+                    alpha=args.alpha )
 
-        agent.save(actions, rewards)
+        for e in episodes:
+            actions = agent.act()
 
-        agent_avg_rewards.append(rewards.mean())
-        system_rewards.append(rewards.sum())
+            rewards = env.step(actions)
+
+            agent.update(actions, rewards)
+
+            all_avg_rewards[r, e] = rewards.mean() 
+
+            print(f'Run {r+1}/{args.runs}  -  Episode {e+1}/{args.episodes}  -  Episode Reward: {rewards.mean()}', end='\r')
+
+    means = all_avg_rewards.mean(0)
+    stds = all_avg_rewards.std(0)
 
     fig, ax = plt.subplots(figsize=(8, 6))
     ax.set_title('QLearning Agent Rewards')
     ax.set_xlabel('Episode')
     ax.set_ylabel('Reward')
-    ax.plot(episodes, agent_avg_rewards, label='AVG. Agent Reward')
+    ax.plot(episodes, means, label='AVG. Agent Reward')
+    plt.fill_between(episodes, means-stds, means+stds,alpha=0.2)
     legend = ax.legend(loc='lower right', shadow=True)
-    plt.savefig('fig.png')
-    plt.show()
-
-
-    fig, ax = plt.subplots(figsize=(8, 6))
-    ax.set_title('QLearning System Reward')
-    ax.plot(episodes, system_rewards, label='Sum of agents reward.')
-    legend = ax.legend(loc='lower right', shadow=True)
+    plt.savefig(args.outpath)
+    print(f'\nFigure saved to: {args.outpath}')
     #plt.show()
-
-
-
-
-
