@@ -1,4 +1,4 @@
-##Multiagent route choice environment
+## Multiagent route choice environment
 
 Implemented solvers:
 - QLearning
@@ -8,7 +8,7 @@ Implemented solvers:
 ### Setup
 Run:
 ```
-    pip install -r requirements.txt
+pip install -r requirements.txt
 ```
 
 ### QLearning
