@@ -3,6 +3,7 @@ import gym
 import igraph
 import numpy as np
 from itertools import chain
+import time
 
 from utils import read_graph, get_agent_routes
 
@@ -100,6 +101,8 @@ class Env:
         edges, flows = np.unique(edges, return_counts=True)
         edge_flow = dict(zip(edges, flows))
 
+        trgts, flows = np.unique(targets, return_counts=True)
+
         for i, path in enumerate(paths):
             if path is None:
                 continue
@@ -110,10 +113,9 @@ class Env:
                 cost += self.functions[cf](flow)
 
             t = targets[i]
-            trgts, flows = np.unique(targets, return_counts=True)
             flow = flows[trgts == t][0]
 
-            vf = self.G.vs.find(name=t)['value']
+            vf = self.G.vs[self.node_mapping[t]]['value']
             values[i] = self.functions[vf](flow)
             costs[i] = cost
 
@@ -166,24 +168,9 @@ if __name__ == '__main__':
     print(f'Reward {best_reward}')
     print(f'Average per Agent {best_reward/len(high)}')
     print('Paths:')
-    for route in env.get_routes(best_actions):
+    for i, route in enumerate(env.get_routes(best_actions)):
         print(route)
+        if i == 4:
+            break
 
-
-    ## DEFUNCT
-    #system_optimum_actions = [0, 1, 1, 1, 1, 1]
-    #system_optimum_rewards = env.step(system_optimum_actions)
-    #system_optimum = sum(system_optimum_rewards)
-    #print('\nSystem Optimum:')
-    #print('Actions under system optimum:', system_optimum_actions)
-    #print('Individual rewards under System Optimum:', system_optimum_rewards)
-    #print('Total reward:', system_optimum)
-
-    #ue_actions = [1, 1, 0, 2, 1, 0]
-    #ue_rewards = env.step(ue_actions)
-    #ue = sum(ue_rewards)
-    #print('\nUser Equilibrium:')
-    #print('Actions under User Equilibrium:', ue_actions)
-    #print('Individual rewards under user equilibrium:', ue_rewards)
-    #print('Total reward:', ue)
 
