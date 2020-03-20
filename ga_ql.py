@@ -55,7 +55,7 @@ def ga_ql(args, env, run=None):
 
 
 def parse_args():
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     # Environment Params
     parser.add_argument('netfile')
     parser.add_argument('--h', help='Max number of hops allowed by the agent.', default=2, type=int)
@@ -71,7 +71,7 @@ def parse_args():
     parser.add_argument('--decay', help='Epsilon decay rate.', default=1, type=float)
     parser.add_argument('--alpha', help='Alpha value of QLearning.', default=0.1, type=float)
     # Simulation Params
-    parser.add_argument('--runs', help='Number of runs for GA-QL.', default=30, type=int)
+    parser.add_argument('--runs', help='Number of runs for GA-QL.', default=1, type=int)
     parser.add_argument('--episodes', help='Number of episodes to run.', default=2000, type=int)
     parser.add_argument('--outpath', help='Output directory for plot.', default='./figs/ga_ql.png')
     return parser.parse_args()
@@ -79,6 +79,10 @@ def parse_args():
 if __name__ == '__main__':
     print('- Starting GA-QL -')
     args = parse_args()
+
+    dir = os.path.dirname(args.outpath)
+    if not os.path.isdir(dir):
+        os.makedirs(dir)
 
     env = Env(args.netfile, h=args.h, k=args.k)
 

@@ -48,7 +48,7 @@ def build_ga(env,
 
 
 def parse_args():
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     # Environment Params
     parser.add_argument('netfile')
     parser.add_argument('--h', help='Max number of hops allowed by the agent.', default=2, type=int)
@@ -67,6 +67,10 @@ def parse_args():
 if __name__ == '__main__':
     print('- Starting Generic Algorithm -')
     args = parse_args()
+
+    dir = os.path.dirname(args.outpath)
+    if not os.path.isdir(dir):
+        os.makedirs(dir)
 
     hists = []
     env = Env(args.netfile, h=args.h, k=args.k)
