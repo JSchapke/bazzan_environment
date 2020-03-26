@@ -1,5 +1,6 @@
 import os
 import argparse
+import datetime
 import random
 from functools import partial
 from pyeasyga import pyeasyga
@@ -28,7 +29,7 @@ def build_ga(env,
         crossover_rate=0,
         mutation_rate=0,
         generations=1,
-        eletism=False,
+        elitism=False,
         **kwargs):
     _fitness = partial(fitness, env)
     _mutate = partial(mutate, env.action_space)
@@ -39,7 +40,7 @@ def build_ga(env,
                                    generations=generations,
                                    crossover_probability=crossover_rate,
                                    mutation_probability=mutation_rate,
-                                   elitism=eletism,
+                                   elitism=elitism,
                                    maximise_fitness=True )
     ga.create_individual = _create_individual
     ga.mutate_function = _mutate
@@ -51,29 +52,33 @@ def parse_args():
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     # Environment Params
     parser.add_argument('netfile')
-    parser.add_argument('--h', help='Max number of hops allowed by the agent.', default=2, type=int)
-    parser.add_argument('--k', help='Max number of K shortest routes from an agent to a target.', default=2, type=int)
+    parser.add_argument('--s', help='Max number of steps allowed from an origin to a destination node.', default=2, type=int)
+    parser.add_argument('--k', help='Max number of shortest paths from an origin to a destination node.', default=2, type=int)
     # Agent Params
-    parser.add_argument('--generations', help='Number of generations to run.', default=2000, type=int)
-    parser.add_argument('--population', help='Size of population.', default=5, type=int)
-    parser.add_argument('--crossover_rate', help='Rate of crossover.', default=0.5, type=float)
-    parser.add_argument('--mutation_rate', help='Rate of mutation.', default=0.5, type=float)
-    parser.add_argument('--eletism', help='Keep the most fit individual in the population.', default=False, action='store_true')
+    parser.add_argument('--generations', '-g', help='Number of generations to run.', default=500, type=int)
+    parser.add_argument('--population', '-p', help='Size of population.', default=100, type=int)
+    parser.add_argument('--crossover_rate', '-c', help='Rate of crossover.', default=0.5, type=float)
+    parser.add_argument('--mutation_rate', '-m', help='Rate of mutation.', default=0.5, type=float)
+    parser.add_argument('--elitism', '-e', help='Keep the most fit individual in the population. Parameter does not take any arguments.', default=False, action='store_true')
     # Simulation Params
-    parser.add_argument('--runs', help='Number of runs for GA.', default=30, type=int)
-    parser.add_argument('--outpath', help='Output path for plot.', default='./figs/ga.png')
+    parser.add_argument('--runs', help='Number of runs for GA.', default=1, type=int)
+    parser.add_argument('--outdir', help='Output dir for the plot.', default='./figs/')
     return parser.parse_args()
 
 if __name__ == '__main__':
     print('- Starting Generic Algorithm -')
     args = parse_args()
 
-    dir = os.path.dirname(args.outpath)
-    if not os.path.isdir(dir):
-        os.makedirs(dir)
+    now = datetime.datetime.now()
+    hour = ('0' + str(now.hour))[-2:]
+    minute = ('0' + str(now.minute))[-2:]
+    filename = f'GA_g{args.generations}_p{args.population}_{hour}{minute}.png'
+    outpath = os.path.join(args.outdir, filename)
+    if not os.path.isdir(args.outdir):
+        os.makedirs(args.outdir)
 
     hists = []
-    env = Env(args.netfile, h=args.h, k=args.k)
+    env = Env(args.netfile, h=args.s, k=args.k)
     action_space = env.action_space
 
     rewards = np.zeros((args.runs, args.generations))
@@ -84,7 +89,7 @@ if __name__ == '__main__':
                 args.population, 
                 crossover_rate=args.crossover_rate,
                 mutation_rate=args.mutation_rate,
-                eletism=args.eletism)
+                elitism=args.elitism)
         ga.create_first_generation()
 
         for g in generations:
@@ -106,14 +111,6 @@ if __name__ == '__main__':
     ax.plot(generations, means, label='AVG. Generation Reward')
     plt.fill_between(generations, means-stds, means+stds,alpha=0.2)
     legend = ax.legend(loc='lower right', shadow=True)
-    plt.savefig(args.outpath)
-    print(f'Figure saved to: {args.outpath}')
-
-#    routes = env.get_routes(actions)
-#    print('---- Results ----')
-#    print('Best reward:', reward)
-#    print('Routes:')
-#    for route in routes:
-#        print(route)
-#    print('-----------------')
+    plt.savefig(outpath)
+    print(f'Figure saved to: {outpath}')
 

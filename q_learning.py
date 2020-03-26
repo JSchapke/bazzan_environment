@@ -70,16 +70,16 @@ def parse_args():
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     # Environment Params
     parser.add_argument('netfile')
-    parser.add_argument('--h', help='Max number of hops allowed by the agent.', default=2, type=int)
-    parser.add_argument('--k', help='Max number of K shortest routes from an agent to a target.', default=2, type=int)
+    parser.add_argument('--s', help='Max number of steps allowed from an origin to a destination node.', default=2, type=int)
+    parser.add_argument('--k', help='Max number of shortest paths from an origin to a destination node.', default=2, type=int)
     # Agent Params
     parser.add_argument('--eps', help='Starting epsilon for QLearning.', default=.05, type=float)
     parser.add_argument('--decay', help='Epsilon decay rate.', default=1, type=float)
-    parser.add_argument('--alpha', help='Alpha value of QLearning.', default=0.1, type=float)
+    parser.add_argument('--alpha', help='Learning rate alpha value of QLearning.', default=0.5, type=float)
     # Simulation Params
     parser.add_argument('--episodes', help='Number of episodes for a run of QLearning.', default=2000,type=int)
-    parser.add_argument('--runs', help='Number of runs for QLearning.', default=30, type=int)
-    parser.add_argument('--outpath', help='Output path for plot.', default='./figs/qlearn.png')
+    parser.add_argument('--runs', help='Number of runs for QLearning.', default=1, type=int)
+    parser.add_argument('--outdir', help='Output dir for the plot.', default='./figs/')
     return parser.parse_args()
 
 
@@ -87,11 +87,15 @@ if __name__ == '__main__':
     print('- Starting QLearning -')
     args = parse_args()
 
-    dir = os.path.dirname(args.outpath)
-    if not os.path.isdir(dir):
-        os.makedirs(dir)
+    now = datetime.datetime.now()
+    hour = ('0' + str(now.hour))[-2:]
+    minute = ('0' + str(now.minute))[-2:]
+    filename = f'QL_a{args.alph}_k{args.k}_{hour}{minute}.png'
+    outpath = os.path.join(args.outdir, filename)
+    if not os.path.isdir(args.outdir):
+        os.makedirs(args.outdir)
 
-    env = Env(args.netfile, h=args.h, k=args.k)
+    env = Env(args.netfile, h=args.s, k=args.k)
     action_space = env.action_space
     print(f'N. Agents: {len(action_space.high)}')
 
@@ -130,6 +134,5 @@ if __name__ == '__main__':
     ax.plot(episodes, means, label='AVG. Agent Reward')
     plt.fill_between(episodes, means-stds, means+stds,alpha=0.2)
     legend = ax.legend(loc='lower right', shadow=True)
-    plt.savefig(args.outpath)
-    print(f'\nFigure saved to: {args.outpath}')
-    #plt.show()
+    plt.savefig(outpath)
+    print(f'\nFigure saved to: {outpath}')
