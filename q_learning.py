@@ -1,6 +1,7 @@
 import copy
 import argparse
 import os
+import datetime
 from collections import deque
 import random
 import numpy as np
@@ -90,7 +91,7 @@ if __name__ == '__main__':
     now = datetime.datetime.now()
     hour = ('0' + str(now.hour))[-2:]
     minute = ('0' + str(now.minute))[-2:]
-    filename = f'QL_a{args.alph}_k{args.k}_{hour}{minute}.png'
+    filename = f'QL_a{args.alpha}_k{args.k}_{hour}{minute}.png'
     outpath = os.path.join(args.outdir, filename)
     if not os.path.isdir(args.outdir):
         os.makedirs(args.outdir)
