@@ -69,7 +69,7 @@ def init_qtables(env):
 def parse_args():
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     # Environment Params
-    parser.add_argument('netfile')
+    parser.add_argument('netfile', help='File containing the network')
     parser.add_argument('--s', help='Max number of steps allowed from an origin to a destination node.', default=2, type=int)
     parser.add_argument('--k', help='Max number of shortest paths from an origin to a destination node.', default=2, type=int)
     # Agent Params

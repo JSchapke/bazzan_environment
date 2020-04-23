@@ -33,6 +33,7 @@ def ga_ql(args, env, run=None):
         else:
             actions = agents.act()
 
+        # QL step
         rewards = env.step(actions)
         agents.update(actions, rewards)
 
