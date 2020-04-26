@@ -3,9 +3,12 @@ import gym
 import igraph
 import numpy as np
 from itertools import chain
+from multiprocessing import Pool
+from functools import partial
 import time
 
 from utils import read_graph, get_agent_routes
+
 
 class Env:
     def __init__(self, graphfile, k=1, h=2):
@@ -69,6 +72,10 @@ class Env:
             agent = self.all_agents[i]
             routes.append(self.choices[agent][action])
         return routes
+
+    def test(self, i):
+        return i 
+
 
     def step(self, actions):
         if len(actions) != len(self.all_agents):

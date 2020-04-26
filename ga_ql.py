@@ -7,6 +7,44 @@ from env import Env
 from q_learning import QLearning, init_qtables
 from ga import build_ga
 
+
+def run_ga_ql(env, runs, episodes, ql_params, ga_params, delta):
+    ql_rewards = np.zeros((runs, episodes))
+    ga_rewards = np.zeros((runs, episodes))
+    for r in range(runs):
+        agents = QLearning(**ql_params)
+
+        authority = build_ga(env, **ga_params)
+        authority.create_first_generation()
+
+        for tau in range(episodes):
+            if tau > 0 and tau % delta == 0:
+                actions = best_solution 
+            else:
+                actions = agents.act()
+
+            # QL step
+            rewards = env.step(actions)
+            agents.update(actions, rewards)
+
+            current_solution = actions 
+
+            # Adds current solution to GA
+            authority.current_generation[-1].genes = current_solution
+            authority.current_generation[-1].fitness = rewards.mean()
+
+            # GA step
+            authority.create_next_generation()
+            best_reward, best_solution = authority.best_individual()
+
+            ql_rewards[r, tau] = rewards.mean()
+            ga_rewards[r, tau] = best_reward
+
+            print(f'Run {r+1}/{runs}  -  Episode {tau+1}/{episodes}  -  Episode Reward: {rewards.mean()}', end='\r')
+
+    return ql_rewards, ga_rewards
+
+
 def ga_ql(args, env, run=None):
 
     qtables = init_qtables(env)
@@ -51,7 +89,7 @@ def ga_ql(args, env, run=None):
         ga_gen = authority.current_generation
         ga_history[tau] = np.mean([i.fitness for i in ga_gen])
 
-        print(f'Run {r+1}/{args.runs}  -  Episode {tau+1}/{args.episodes}  -  Episode Reward: {rewards.mean()}', end='\r')
+        #print(f'Run {1}/{args.runs}  -  Episode {tau+1}/{args.episodes}  -  Episode Reward: {rewards.mean()}', end='\r')
     return best_solution, ql_history, ga_history
 
 

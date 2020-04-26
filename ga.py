@@ -48,6 +48,22 @@ def build_ga(env,
     return ga
 
 
+def run_ga(env, n_runs, generations, ga_params):
+    rewards = np.zeros((n_runs, generations))
+    for r in range(n_runs):
+        ga = build_ga(env, **ga_params)
+        ga.create_first_generation()
+
+        for g in range(generations):
+            ga.create_next_generation()
+
+            reward = ga.best_individual()[0]
+            rewards[r, g] = reward
+
+            print(f'Run {r+1}/{n_runs}  -  Generation {g+1}/{generations}  -  Generation Reward: {reward}', end='\r')
+    return rewards
+
+
 def parse_args():
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     # Environment Params
@@ -56,7 +72,7 @@ def parse_args():
     parser.add_argument('--k', help='Max number of shortest paths from an origin to a destination node.', default=2, type=int)
     # Agent Params
     parser.add_argument('--generations', '-g', help='Number of generations to run.', default=500, type=int)
-    parser.add_argument('--population', '-p', help='Size of population.', default=100, type=int)
+    parser.add_argument('--population', '-p', help='Size of population.', default=20, type=int)
     parser.add_argument('--crossover_rate', '-c', help='Rate of crossover.', default=0.5, type=float)
     parser.add_argument('--mutation_rate', '-m', help='Rate of mutation.', default=0.5, type=float)
     parser.add_argument('--elitism', '-e', help='Keep the most fit individual in the population. Parameter does not take any arguments.', default=False, action='store_true')
@@ -81,26 +97,16 @@ if __name__ == '__main__':
     env = Env(args.netfile, h=args.s, k=args.k)
     action_space = env.action_space
 
-    rewards = np.zeros((args.runs, args.generations))
-    generations = range(args.generations)
 
-    for r in range(args.runs):
-        ga = build_ga(env,
-                args.population, 
+    ga_params = dict(
+                population=args.population, 
                 crossover_rate=args.crossover_rate,
                 mutation_rate=args.mutation_rate,
                 elitism=args.elitism)
-        ga.create_first_generation()
 
-        for g in generations:
-            ga.create_next_generation()
+    rewards = run_ga(env, args.runs, args.generations, ga_params)
 
-            cur_gen = ga.current_generation
-            reward = np.mean([i.fitness for i in cur_gen])
-            rewards[r, g] = reward
-
-            print(f'Run {r+1}/{args.runs}  -  Generation {g+1}/{args.generations}  -  Generation Reward: {reward}', end='\r')
-
+    generations = range(args.generations)
     means = rewards.mean(0)
     stds = rewards.std(0)
 

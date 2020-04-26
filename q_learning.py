@@ -6,6 +6,7 @@ from collections import deque
 import random
 import numpy as np
 import matplotlib.pyplot as plt
+import time
 
 from env import Env
 
@@ -36,6 +37,7 @@ class QLearning:
 
 
     def act(self):
+        return [0] * self.n_agents
         actions = []
         for agent in range(self.n_agents):
             if np.random.rand() < self.eps:
@@ -50,6 +52,7 @@ class QLearning:
         return actions
 
     def update(self, actions, rewards):
+        return
         self.eps = self.eps * self.decay
 
         for a, qtable in enumerate(self.qtables):
@@ -78,10 +81,30 @@ def parse_args():
     parser.add_argument('--decay', help='Epsilon decay rate.', default=1, type=float)
     parser.add_argument('--alpha', help='Learning rate alpha value of QLearning.', default=0.5, type=float)
     # Simulation Params
-    parser.add_argument('--episodes', help='Number of episodes for a run of QLearning.', default=2000,type=int)
+    parser.add_argument('--episodes', help='Number of episodes for a run of QLearning.', default=1000,type=int)
     parser.add_argument('--runs', help='Number of runs for QLearning.', default=1, type=int)
     parser.add_argument('--outdir', help='Output dir for the plot.', default='./figs/')
     return parser.parse_args()
+
+
+def run_ql(env, n_runs, episodes, ql_params):
+    all_avg_rewards = np.zeros((n_runs, episodes))
+
+    for r in range(n_runs):
+        agent = QLearning(**ql_params)
+
+        for e in range(episodes):
+            actions = agent.act()
+
+            rewards = env.step(actions)
+
+            agent.update(actions, rewards)
+
+            all_avg_rewards[r, e] = rewards.mean() 
+
+            print(f'Run {r+1}/{n_runs}  -  Episode {e+1}/{episodes}  -  Episode Reward: {rewards.mean()}', end='\r')
+
+    return all_avg_rewards
 
 
 if __name__ == '__main__':
@@ -105,6 +128,10 @@ if __name__ == '__main__':
 
     all_avg_rewards = np.zeros((args.runs, args.episodes))
     episodes = range(args.episodes)
+    
+    env_time = 0
+    act_time = 0
+    upd_time = 0
 
     for r in range(args.runs):
         agent = QLearning(
@@ -115,15 +142,26 @@ if __name__ == '__main__':
                     alpha=args.alpha )
 
         for e in episodes:
+            st = time.time()
             actions = agent.act()
+            end = time.time()
+            act_time += end - st
 
+            st = time.time()
             rewards = env.step(actions)
+            end = time.time()
+            env_time += end - st
 
+            st = time.time()
             agent.update(actions, rewards)
+            end = time.time()
+            upd_time += end - st
 
             all_avg_rewards[r, e] = rewards.mean() 
 
             print(f'Run {r+1}/{args.runs}  -  Episode {e+1}/{args.episodes}  -  Episode Reward: {rewards.mean()}', end='\r')
+
+        print(env_time, act_time, upd_time)
 
     means = all_avg_rewards.mean(0)
     stds = all_avg_rewards.std(0)

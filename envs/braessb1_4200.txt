@@ -1,0 +1,17 @@
+# cost_functions
+C0 = lambda f: 10 
+C1 = lambda f: 10/4200*f
+Z = lambda f: 0
+
+# edges
+S W1 C0
+S V1 C1
+W1 T C1
+V1 T C0
+V1 W1 Z
+
+# agents
+S 4200
+
+# targets
+T Z
