@@ -6,6 +6,7 @@ from itertools import chain
 from multiprocessing import Pool
 from functools import partial
 import time
+from collections import defaultdict
 
 from utils import read_graph, get_agent_routes
 
@@ -82,52 +83,76 @@ class Env:
             raise Exception('Number of actions does not match number of agents.')
 
         paths = []
-        edges = np.array([], dtype=int)
+        edges = {}
         
-        targets = []
+        targets, target_flows = [], {}
         values  = np.zeros(len(self.all_agents))
         costs   = np.zeros(len(self.all_agents))
-        
-        for i, action in enumerate(actions):
-            a = self.all_agents[i]
-            if not self.legal_action(i, action):
-                values[i] = np.nan
-                costs[i] = np.nan
-                paths.append(None)
-                continue
 
-            path = self.choices[a][action]
-            path_ids = [self.node_mapping[node] for node in path]
-            path_edges = self.G.get_eids(path=path_ids)
-            paths.append(path_edges)
-            edges_ = np.unique(path_edges)
-            edges = np.append(edges, edges_)
+        cur = 0
+        agent_action = {}
+        all_acts = []
+        for a, n in enumerate(self.n_agents):
+            acts, counts = np.unique(actions[cur:cur+n], return_counts=True)
+            all_acts.append(acts)
+            cur += n
 
-            targets.append(path[-1])
+            for action, count in zip(acts, counts):
+                if not self.legal_action(a, action):
+                    raise ValueError(f'Illegal action {actoin} for agent {a}.')
+         
+                path = self.choices[a][action]
+                path_ids = [self.node_mapping[node] for node in path]
+                path_edges = self.G.get_eids(path=path_ids)
+                edges_, counts_ = np.unique(path_edges, return_counts=True)
+                for e, c in zip(edges_, counts_):
+                    edges[e] = c * count if e not in edges else edges[e] + c * count
 
-        edges, flows = np.unique(edges, return_counts=True)
+                p = path[-1]
+                targets.append(p)
+                target_flows[p] = target_flows[p] + count if p in target_flows else count
+
+                #print(a, action)
+                agent_action[(a, action)] = {
+                        'path': path_edges,
+                        'edges': edges_,
+                        'target': p }
+
+        flows = list(edges.values())
+        edges = list(edges.keys())
         edge_flow = dict(zip(edges, flows))
 
-        trgts, flows = np.unique(targets, return_counts=True)
+        _values = {}
+        _costs = {}
 
-        for i, path in enumerate(paths):
-            if path is None:
-                continue
+        for k, v in agent_action.items():
             cost = 0
+            path = v['path']
             for edge in path:
                 flow = edge_flow[edge]
                 cf = self.G.es[edge]['cost_fn']
                 cost += self.functions[cf](flow)
 
-            t = targets[i]
-            flow = flows[trgts == t][0]
-
+            t = v['target']
+            flow = target_flows[t]
             vf = self.G.vs[self.node_mapping[t]]['value']
-            values[i] = self.functions[vf](flow)
-            costs[i] = cost
+            _values[k] = self.functions[vf](flow)
+            _costs[k]  = cost
+
+        
+        cur = 0
+        for a, n in enumerate(self.n_agents):
+            acts = actions[cur:cur+n]
+            for act in all_acts[a]:
+                mask = actions[cur:cur+n] == act
+                values[cur:cur+n][mask] = _values[(a,act)]
+                costs[cur:cur+n][mask] = _costs[(a,act)]
+            cur += n 
+
 
         rewards = values - costs
         return rewards
+
 
     def legal_action(self, agent, action):
         low = self.action_space.low[agent]
