@@ -7,8 +7,10 @@ import random
 import numpy as np
 import matplotlib.pyplot as plt
 import time
+from multiprocessing import Pool
 
 from env import Env
+
 
 class QLearning:
     def __init__(self, 
@@ -21,6 +23,7 @@ class QLearning:
         self.n_agents = action_space.shape[0]
         self.high = action_space.high
         self.low = action_space.low
+        self.max = self.high.max()
 
         if qtables is None:
             self.qtables = []
@@ -37,22 +40,20 @@ class QLearning:
 
 
     def act(self):
-        return [0] * self.n_agents
-        actions = []
-        for agent in range(self.n_agents):
-            if np.random.rand() < self.eps:
-                l = self.low[agent]
-                h = self.high[agent] + 1
-                actions.append(np.random.randint(l, h))
-            else:
-                maxQ = np.max(self.qtables[agent])
-                idxs = np.where(self.qtables[agent] == maxQ)[0]
-                action = np.random.choice(idxs)
-                actions.append(action)
-        return actions
+        actions = np.zeros(self.n_agents, dtype=int)
+
+        random_actions = np.random.rand(self.n_agents) * (self.high+1)
+        random_actions = np.floor(random_actions)
+
+        probs = np.random.rand(self.n_agents)
+        rand_mask = probs < self.eps
+        actions[rand_mask] = random_actions[rand_mask]
+        
+        play_idx = np.where(~rand_mask)[0]
+        actions[play_idx] = [self.qtables[i].argmax() for i in play_idx]
+        return list(actions)
 
     def update(self, actions, rewards):
-        return
         self.eps = self.eps * self.decay
 
         for a, qtable in enumerate(self.qtables):

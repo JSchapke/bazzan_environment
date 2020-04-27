@@ -3,8 +3,6 @@ import gym
 import igraph
 import numpy as np
 from itertools import chain
-from multiprocessing import Pool
-from functools import partial
 import time
 from collections import defaultdict
 
@@ -99,7 +97,7 @@ class Env:
 
             for action, count in zip(acts, counts):
                 if not self.legal_action(a, action):
-                    raise ValueError(f'Illegal action {actoin} for agent {a}.')
+                    raise ValueError(f'Illegal action {action} for agent {a}.')
          
                 path = self.choices[a][action]
                 path_ids = [self.node_mapping[node] for node in path]
