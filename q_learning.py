@@ -134,16 +134,16 @@ if __name__ == '__main__':
         alpha=args.alpha)
     all_avg_rewards = run_ql(env, args.runs, args.episodes, params)
 
-
     means = all_avg_rewards.mean(0)
     stds = all_avg_rewards.std(0)
 
+    x = range(args.episodes)
     fig, ax = plt.subplots(figsize=(8, 6))
     ax.set_title('QLearning Agent Rewards')
     ax.set_xlabel('Episode')
     ax.set_ylabel('Reward')
-    ax.plot(episodes, means, label='AVG. Agent Reward')
-    plt.fill_between(episodes, means-stds, means+stds,alpha=0.2)
+    ax.plot(x, means, label='AVG. Agent Reward')
+    plt.fill_between(x, means-stds, means+stds,alpha=0.2)
     legend = ax.legend(loc='lower right', shadow=True)
     plt.savefig(outpath)
     print(f'\nFigure saved to: {outpath}')
