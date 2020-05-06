@@ -42,7 +42,7 @@ class QLearning:
     def act(self):
         actions = np.zeros(self.n_agents, dtype=int)
 
-        random_actions = np.random.rand(self.n_agents) * (self.high+1)
+        random_actions = np.random.rand(self.n_agents) * (self.high + 1)
         random_actions = np.floor(random_actions)
 
         probs = np.random.rand(self.n_agents)
@@ -125,44 +125,17 @@ if __name__ == '__main__':
     print(f'N. Agents: {len(action_space.high)}')
 
     # initialize qtable with geodesic distances of choices
-    qtables = init_qtables(env)
-
-    all_avg_rewards = np.zeros((args.runs, args.episodes))
     episodes = range(args.episodes)
     
-    env_time = 0
-    act_time = 0
-    upd_time = 0
+    qtables = init_qtables(env)
+    params = dict(
+        action_space=action_space, 
+        qtables=qtables,
+        eps=args.eps,
+        decay=args.decay,
+        alpha=args.alpha)
+    all_avg_rewards = run_ql(env, args.n_runs, episodes, params)
 
-    for r in range(args.runs):
-        agent = QLearning(
-                    action_space, 
-                    qtables=qtables,
-                    eps=args.eps,
-                    decay=args.decay,
-                    alpha=args.alpha )
-
-        for e in episodes:
-            st = time.time()
-            actions = agent.act()
-            end = time.time()
-            act_time += end - st
-
-            st = time.time()
-            rewards = env.step(actions)
-            end = time.time()
-            env_time += end - st
-
-            st = time.time()
-            agent.update(actions, rewards)
-            end = time.time()
-            upd_time += end - st
-
-            all_avg_rewards[r, e] = rewards.mean() 
-
-            print(f'Run {r+1}/{args.runs}  -  Episode {e+1}/{args.episodes}  -  Episode Reward: {rewards.mean()}', end='\r')
-
-        print(env_time, act_time, upd_time)
 
     means = all_avg_rewards.mean(0)
     stds = all_avg_rewards.std(0)

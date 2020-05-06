@@ -6,11 +6,13 @@ import numpy as np
 import igraph
 
 re_cost_function = r'^#\scost_functions'
-re_edge = r'^#\sedges'
-re_target = r'^#\stargets'
-re_agent = r'^#\sagents'
+re_edge = r'^#\s*edges'
+re_target = r'^#\s*targets'
+re_agent = r'^#\s*agents'
+re_directed = r'^#\s*directed'
 
 def read_graph(path):
+    directed = False
     edges, edge_fn = [], []
     targets, target_fn = [], []
     agents = []
@@ -47,6 +49,8 @@ def read_graph(path):
             reading = 'agents'
         elif re.match(re_target, line):
             reading = 'targets'
+        elif re.match(re_directed, line):
+            directed = True
     f.close()
 
     agents = np.array(agents)
@@ -56,7 +60,7 @@ def read_graph(path):
     agents_idx = np.where(np.isin(vertices, agents))[0].tolist()
     targets_idx = np.where(np.isin(vertices, targets))[0].tolist()
 
-    G = igraph.Graph()
+    G = igraph.Graph(directed=directed)
     G.add_vertices(vertices)
     G.add_edges(edges)
     G.es['cost_fn'] = edge_fn
@@ -79,7 +83,7 @@ def get_agent_routes(G, agent, h, k):
         if hop == h:
             break
 
-        neighbors = G.neighbors(node)
+        neighbors = G.neighbors(node, mode=1)
         prev_node = None if len(path) == 1 else path[-2]
         for nghbr in neighbors:
             name = G.vs[nghbr]['name']
@@ -88,7 +92,7 @@ def get_agent_routes(G, agent, h, k):
 
             nghbr_path = path + [name]
             if G.vs[nghbr]['target'] and \
-                    len(agent_paths[name]) <= k:
+                    len(agent_paths[name]) < k:
                 agent_paths[name].append(nghbr_path)
             
             heappush(heap, [hop+1, name, nghbr_path])
@@ -96,7 +100,6 @@ def get_agent_routes(G, agent, h, k):
 
 
 if __name__ == '__main__':
-    #G = read_graph('env0.txt')
     G = read_graph('env0.txt')
 
     print(G.vs['target'])
