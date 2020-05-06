@@ -125,8 +125,6 @@ if __name__ == '__main__':
     print(f'N. Agents: {len(action_space.high)}')
 
     # initialize qtable with geodesic distances of choices
-    episodes = range(args.episodes)
-    
     qtables = init_qtables(env)
     params = dict(
         action_space=action_space, 
@@ -134,7 +132,7 @@ if __name__ == '__main__':
         eps=args.eps,
         decay=args.decay,
         alpha=args.alpha)
-    all_avg_rewards = run_ql(env, args.n_runs, episodes, params)
+    all_avg_rewards = run_ql(env, args.runs, args.episodes, params)
 
 
     means = all_avg_rewards.mean(0)
