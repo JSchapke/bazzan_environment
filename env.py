@@ -8,7 +8,6 @@ from collections import defaultdict
 
 from utils import read_graph, get_agent_routes
 
-
 class Env:
     def __init__(self, graphfile, k=1, h=2):
         '''
@@ -33,6 +32,33 @@ class Env:
         self.n_agents = n_agents
         self.targets = targets
         self.functions = functions
+
+    def write_graph(self):
+        pass
+
+    def show_graph(self):
+        visual_style = {}
+        self.G.vs["label"] = self.G.vs["name"]
+
+        # Define colors used for outdegree visualization
+        colours = ['#fecc5c', '#a31a1c']
+
+        # Set bbox and margin
+        visual_style["bbox"] = (1000,1000)
+        visual_style["margin"] = 50
+        visual_style["vertex_color"] = 'grey'
+        visual_style["vertex_size"] = 50
+        visual_style["vertex_label_size"] = 20
+        visual_style["edge_curved"] = False
+
+        # Set the layout
+        my_layout = self.G.layout_fruchterman_reingold()
+        visual_style["layout"] = my_layout
+
+
+        # Plot the graph
+        igraph.plot(self.G, **visual_style)
+
     
     def setup(self):
         self.choices = []
@@ -50,7 +76,9 @@ class Env:
             self.choices.append(choices)
             self.n_choices.append(n_choices)
 
-        agents = [[i] * n for i, n in enumerate(self.n_agents)]
+        agents = []
+        for i, n in enumerate(self.n_agents):
+            agents += [i] * n
         self.all_agents = np.array(agents).flatten()
 
         low = np.zeros(len(self.all_agents))
@@ -110,7 +138,6 @@ class Env:
                 targets.append(p)
                 target_flows[p] = target_flows[p] + count if p in target_flows else count
 
-                #print(a, action)
                 agent_action[(a, action)] = {
                         'path': path_edges,
                         'edges': edges_,
@@ -153,15 +180,16 @@ class Env:
 
 
     def legal_action(self, agent, action):
-        low = self.action_space.low[agent]
-        high = self.action_space.high[agent]
+        low = 0
+        high = self.n_choices[agent]
         if action < low or action > high:
             print(f'Invalid action {action} for agent {agent} bounds: ({low}, {high})')
             return False
         return True
 
 if __name__ == '__main__':
-    env = Env('./env0.txt')
+
+    env = Env('./envs/braessb3_4200.txt', k=8, h=10)
     print('Environment built.\n')
     print('env.action_space:', env.action_space)
     print('env.agents:', env.agents)
@@ -171,36 +199,6 @@ if __name__ == '__main__':
     high = env.action_space.high
     num_actions = [high[i]-low[i]+1 for i in range(len(env.agents))]
     print('N. possible actions per agent:', [(agent, num_actions[a]) for a, agent in enumerate(env.agents)])
-
-    print('-'*10, 'Test Cases', '-'*10)
-    best_reward = 0
-    best_actions = None
-    for i in range(100):
-        actions = []
-        for a, h in enumerate(high):
-            action = np.random.randint(low[a], high[a]+1)
-            actions.append([action])
-        actions = np.array(actions).reshape(-1)
-        reward = env.step(actions)
-        total_reward = sum(reward)
-        if total_reward > best_reward:
-            best_reward = total_reward
-            best_actions = actions
-
-        if i < 5:
-            print(f'Test Run N.{i}:')
-            print('Chosen actions:', actions)
-            print('Rewards:', reward)
-            print('Total Reward:', total_reward, '\n')
-    print('-'*35)
-
-    print('--- Best result after 100 random runs ---')
-    print(f'Reward {best_reward}')
-    print(f'Average per Agent {best_reward/len(high)}')
-    print('Paths:')
-    for i, route in enumerate(env.get_routes(best_actions)):
-        print(route)
-        if i == 4:
-            break
-
+    
+    env.show_graph()
 
