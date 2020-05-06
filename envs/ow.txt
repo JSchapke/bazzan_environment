@@ -1,0 +1,45 @@
+# cost_functions
+F2  = lambda f: 2+0.02*f
+F3  = lambda f: 3+0.02*f
+F5  = lambda f: 5+0.02*f
+F7  = lambda f: 7+0.02*f
+F9  = lambda f: 9+0.02*f
+F11 = lambda f: 11+0.02*f
+F12 = lambda f: 12+0.02*f
+F13 = lambda f: 13+0.02*f
+F15 = lambda f: 15+0.02*f
+Z = lambda f: 0
+
+# edges 
+A B F7
+A C F5
+A D F15
+B D F11
+B E F11
+C D F7
+C F F11
+C G F9
+D E F7
+D G F7
+D H F9
+E H F7
+F G F9
+F I F13
+G H F9
+G J F3
+G K F13
+H K F3
+I J F9
+I L F2
+J K F9
+J L F12
+J M F12
+K M F2
+
+# agents
+A 1000
+B 700
+
+# targets
+M Z
+L Z

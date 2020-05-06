@@ -15,3 +15,5 @@ S 4200
 
 # targets
 T Z
+
+# directed

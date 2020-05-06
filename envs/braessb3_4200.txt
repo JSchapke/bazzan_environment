@@ -1,0 +1,39 @@
+# directed
+
+# cost_functions
+F1 = lambda f: f / 600 
+F4 = lambda f: 4*f /300
+O = lambda f: 1
+Z = lambda f: 0
+C58 = lambda f: 58
+C34 = lambda f: 34
+C32 = lambda f: 32
+C8 = lambda f: 8
+
+# edges
+S1 A C58
+S1 W0 Z
+A W1 Z
+A W2 O
+W1 W2 Z
+W1 V1 Z
+W2 W3 F1
+W3 T2 Z
+W3 V3 C34
+S2 W0 Z
+S2 V1 C8
+W0 W1 F4
+V1 V2 F4
+V2 V3 Z
+V2 W2 C32
+V3 T1 Z
+
+# agents
+S1 2100
+S2 2100
+
+# targets
+T1 Z
+T2 Z
+
+# directed
