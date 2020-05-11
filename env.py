@@ -6,7 +6,7 @@ from itertools import chain
 import time
 from collections import defaultdict
 
-from utils import read_graph, get_agent_routes
+from lib.utils import read_graph, get_agent_routes
 
 class Env:
     def __init__(self, graphfile, k=1, h=2):
