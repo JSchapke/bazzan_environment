@@ -3,10 +3,10 @@ import argparse
 import datetime
 import random
 from functools import partial
-from pyeasyga import pyeasyga
 import numpy as np
 import matplotlib.pyplot as plt
 
+from lib.pyeasyga import GeneticAlgorithm
 from env import Env
 
 def create_individual(action_space, *args):
@@ -35,13 +35,13 @@ def build_ga(env,
     _mutate = partial(mutate, env.action_space)
     _create_individual = partial(create_individual, env.action_space)
 
-    ga = pyeasyga.GeneticAlgorithm(None,
-                                   population_size=population,
-                                   generations=generations,
-                                   crossover_probability=crossover_rate,
-                                   mutation_probability=mutation_rate,
-                                   elitism=elitism,
-                                   maximise_fitness=True )
+    ga = GeneticAlgorithm(None,
+                           population_size=population,
+                           generations=generations,
+                           crossover_probability=crossover_rate,
+                           mutation_probability=mutation_rate,
+                           elitism=elitism,
+                           maximise_fitness=True )
     ga.create_individual = _create_individual
     ga.mutate_function = _mutate
     ga.fitness_function = _fitness
@@ -75,7 +75,7 @@ def parse_args():
     parser.add_argument('--population', '-p', help='Size of population.', default=20, type=int)
     parser.add_argument('--crossover_rate', '-c', help='Rate of crossover.', default=0.5, type=float)
     parser.add_argument('--mutation_rate', '-m', help='Rate of mutation.', default=0.5, type=float)
-    parser.add_argument('--elitism', '-e', help='Keep the most fit individual in the population. Parameter does not take any arguments.', default=False, action='store_true')
+    parser.add_argument('--elitism', '-e', help='Size of the elite.', default=0)
     # Simulation Params
     parser.add_argument('--runs', help='Number of runs for GA.', default=1, type=int)
     parser.add_argument('--outdir', help='Output dir for the plot.', default='./figs/')
