@@ -29,7 +29,7 @@ def build_ga(env,
         crossover_rate=0,
         mutation_rate=0,
         generations=1,
-        elitism=False,
+        elitism=0,
         **kwargs):
     _fitness = partial(fitness, env)
     _mutate = partial(mutate, env.action_space)

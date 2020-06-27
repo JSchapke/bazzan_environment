@@ -1,27 +1,21 @@
 # cost_functions
-C0 = lambda f: 1000
-C1 = lambda f: f
-C2 = lambda f: 2*f
-V1 = lambda f: 2000
-V2 = lambda f: 2600
+C0 = lambda f: 200 -.4*f
+C1 = lambda f: .4*f
+C2 = lambda f: .2*f
+V1 = lambda f: 200
+V2 = lambda f: 260
 
 # edges
 A1 T1 C0
-A1 A2 C1
 A2 T2 C2
-A2 A3 C1
 A3 T3 C0
-A3 A4 C1
-A4 T4 C0
-A4 A5 C1
-A5 T5 C2
-A5 A6 C1
-A6 T6 C0
+A1 A2 C1
+A2 A3 C1
 
 # agents
-A1 200
-A2 200
-A3 200
+A1 200 
+A2 200 
+A3 200 
 
 # targets
 T1 V1
