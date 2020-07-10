@@ -4,7 +4,7 @@ C1 = lambda f: .5*f
 C2 = lambda f: .2*f
 C3 = lambda f: 3*f
 V1 = lambda f: 100
-V2 = lambda f: 130 
+V2 = lambda f: 120 
 
 # edges
 A1 T1 C0

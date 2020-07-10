@@ -18,7 +18,12 @@ class QLearning:
             eps,
             decay,
             alpha,
-            qtables=None):
+            min_eps=0,
+            qtables=None,
+            verbose=1,):
+
+        self.i = 0
+        self.verbose = verbose
 
         self.n_agents = action_space.shape[0]
         self.high = action_space.high
@@ -35,6 +40,7 @@ class QLearning:
             self.qtables = copy.deepcopy(qtables)
 
         self.eps = eps
+        self.min_eps = min_eps
         self.decay = decay
         self.alpha = alpha
 
@@ -54,12 +60,18 @@ class QLearning:
         return list(actions)
 
     def update(self, actions, rewards):
-        self.eps = self.eps * self.decay
+        self.eps = max(self.eps * self.decay, self.min_eps)
 
         for a, qtable in enumerate(self.qtables):
             action = actions[a]
             reward = rewards[a]
             qtable[action] = qtable[action] + self.alpha * (reward - qtable[action])
+
+        if self.verbose:
+            self.i += 1
+            if self.i == 500:
+                self.i = 0
+                print('\nEps:', self.eps)
 
 
 def init_qtables(env):

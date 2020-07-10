@@ -19,7 +19,8 @@ def run_ga_ql(env, runs, episodes, ql_params, ga_params, delta):
         authority.create_first_generation()
 
         for tau in range(episodes):
-            if tau > 0 and tau % delta == 0:
+            if tau > 0 and tau % delta == 0 \
+                    and delta :
                 actions = best_solution 
             else:
                 actions = agents.act()
@@ -33,65 +34,46 @@ def run_ga_ql(env, runs, episodes, ql_params, ga_params, delta):
             # Adds current solution to GA
             authority.current_generation[-1].genes = current_solution
             authority.current_generation[-1].fitness = rewards.mean()
+            authority.rank_population()
+
+            ## GA step
+            #authority.create_next_generation()
 
             # GA step
-            authority.create_next_generation()
+            if (tau+1) % ga_params['population'] == 0:
+                authority.create_next_generation()
+
             best_reward, best_solution = authority.best_individual()
 
             ql_rewards[r, tau] = rewards.mean()
             ga_rewards[r, tau] = best_reward
 
             print(f'Run {r+1}/{runs}  -  Episode {tau+1}/{episodes}  -  Episode Reward: {rewards.mean()}', end='\r')
+    print('')
 
     return ql_rewards, ga_rewards
 
 
-def ga_ql(args, env, run=None):
+def ga_ql(args, env, runs=1):
 
     qtables = init_qtables(env)
-    agents = QLearning(
-                env.action_space,
-                args.epsilon,
-                args.decay,
-                args.alpha,
+    ql_params = dict(
+                action_space=env.action_space,
+                eps=args.epsilon,
+                decay=args.decay,
+                alpha=args.alpha,
                 qtables=qtables)
 
-    authority = build_ga(env,
-                    args.population, 
+    ga_params = dict(
+                    population=args.population, 
                     crossover_rate=args.crossover_rate,
                     mutation_rate=args.mutation_rate,
                     eletism=args.eletism )
-    authority.create_first_generation()
 
-    ga_history = np.zeros(args.episodes)
-    ql_history = np.zeros(args.episodes)
+    ga_history, ql_history = run_ga_ql(env, runs, \
+            args.episodes, ql_params, ga_params, args.delta)
 
-    for tau in range(args.episodes):
-        if tau > 0 and tau % args.delta == 0:
-            actions = best_solution 
-        else:
-            actions = agents.act()
-
-        # QL step
-        rewards = env.step(actions)
-        agents.update(actions, rewards)
-
-        current_solution = actions 
-
-        # Adds current solution to GA
-        authority.current_generation[-1].genes = current_solution
-        authority.current_generation[-1].fitness = rewards.mean()
-
-        # GA step
-        authority.create_next_generation()
-        best_solution = authority.best_individual()[1]
-
-        ql_history[tau] = rewards.mean()
-        ga_gen = authority.current_generation
-        ga_history[tau] = np.mean([i.fitness for i in ga_gen])
-
-        #print(f'Run {1}/{args.runs}  -  Episode {tau+1}/{args.episodes}  -  Episode Reward: {rewards.mean()}', end='\r')
-    return best_solution, ql_history, ga_history
+    return best_solution[1], ql_history[1], ga_history
 
 
 def parse_args():
@@ -130,13 +112,7 @@ if __name__ == '__main__':
 
     env = Env(args.netfile, h=args.s, k=args.k)
 
-    ql_rewards = np.zeros((args.runs, args.episodes))
-    ga_rewards = np.zeros((args.runs, args.episodes))
-    for r in range(args.runs):
-        best_solution, ql_history, ga_history = ga_ql(args, env, run=r)
-        ql_rewards[r] = ql_history
-        ga_rewards[r] = ga_history
-    print('')
+    best_solution, ql_rewards, ga_rewards = ga_ql(args, env, args.runs)
 
     ga_means = ga_rewards.mean(0)
     ga_stds = ga_rewards.std(0)

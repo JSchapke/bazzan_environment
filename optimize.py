@@ -8,15 +8,17 @@ from ga_ql import *
 def ga_objective(env, trial):
     c = trial.suggest_uniform('cross_rate', 0, 1)
     m = trial.suggest_uniform('mutation_rate', 0, 1)
+    p = trial.suggest_int('population', 1, 100 / 5) * 5
+    e = trial.suggest_int('elitism', 0, min(10, p // 2)) * 2
 
     ga_params = dict(
-                population=100, 
+                population=p, 
                 crossover_rate=c,
                 mutation_rate=m,
-                elitism=True)
+                elitism=e)
 
-    reward = run_ga(env, 1, 1000, ga_params)
-    return -reward.mean()
+    reward = run_ga2(env, 3, 5000, ga_params)
+    return reward[:, -1].mean() # optimize final performance
 
 
 def ql_objective(env, trial):
@@ -46,14 +48,16 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     env = Env(args.netfile, h=args.s, k=args.k)
-    study = optuna.create_study()
+
+    study = optuna.create_study(direction='maximize')
 
     if args.algo == 'ga':
+        study = optuna.load_study(study_name='distributed-ga', storage='sqlite:///dist_ga.db')
         objective = partial(ga_objective, env)
 
     elif args.algo == 'ql':
         objective = partial(ql_objective, env)
 
-    study.optimize(objective, n_trials=20)
+    study.optimize(objective, n_trials=100)
     print('Best Parameters:')
     print(study.best_params)

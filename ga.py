@@ -64,6 +64,27 @@ def run_ga(env, n_runs, generations, ga_params):
     return rewards
 
 
+def run_ga2(env, n_runs, env_steps, ga_params):
+    rewards = np.zeros((n_runs, env_steps))
+    pop = ga_params['population']
+
+    for r in range(n_runs):
+        ga = build_ga(env, **ga_params)
+        ga.create_first_generation()
+        cur_step = pop
+
+        for s in range(env_steps):
+            if cur_step == s:
+                ga.create_next_generation()
+                cur_step += pop
+
+            reward = ga.best_individual()[0]
+            rewards[r, s] = reward
+
+            print(f'Run {r+1}/{n_runs}  -  Step {s+1}/{env_steps}  -  Generation Reward: {reward}', end='\r')
+    return rewards
+
+
 def parse_args():
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     # Environment Params
@@ -77,6 +98,7 @@ def parse_args():
     parser.add_argument('--mutation_rate', '-m', help='Rate of mutation.', default=0.5, type=float)
     parser.add_argument('--elitism', '-e', help='Size of the elite.', default=0)
     # Simulation Params
+    parser.add_argument('--env_steps', help='Number of environment steps to run.', default=1000, type=int)
     parser.add_argument('--runs', help='Number of runs for GA.', default=1, type=int)
     parser.add_argument('--outdir', help='Output dir for the plot.', default='./figs/')
     return parser.parse_args()
@@ -104,7 +126,8 @@ if __name__ == '__main__':
                 mutation_rate=args.mutation_rate,
                 elitism=args.elitism)
 
-    rewards = run_ga(env, args.runs, args.generations, ga_params)
+    #rewards = run_ga(env, args.runs, args.generations, ga_params)
+    rewards = run_ga2(env, args.runs, args.env_steps, ga_params)
 
     generations = range(args.generations)
     means = rewards.mean(0)
