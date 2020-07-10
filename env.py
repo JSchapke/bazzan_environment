@@ -15,6 +15,7 @@ class Env:
         k - Integer, k shortest paths to be considered
         h - Integer, h number of hops to be considered
         '''
+        self.games_played = 0
         self.graphfile = graphfile
         self.h = h
         self.k = k
@@ -107,6 +108,7 @@ class Env:
     def step(self, actions):
         if len(actions) != len(self.all_agents):
             raise Exception('Number of actions does not match number of agents.')
+        self.games_played += 1
 
         paths = []
         edges = {}
