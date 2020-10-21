@@ -48,23 +48,7 @@ def build_ga(env,
     return ga
 
 
-def run_ga(env, n_runs, generations, ga_params):
-    rewards = np.zeros((n_runs, generations))
-    for r in range(n_runs):
-        ga = build_ga(env, **ga_params)
-        ga.create_first_generation()
-
-        for g in range(generations):
-            ga.create_next_generation()
-
-            reward = ga.best_individual()[0]
-            rewards[r, g] = reward
-
-            print(f'Run {r+1}/{n_runs}  -  Generation {g+1}/{generations}  -  Generation Reward: {reward}', end='\r')
-    return rewards
-
-
-def run_ga2(env, n_runs, env_steps, ga_params):
+def run_ga(env, n_runs, env_steps, ga_params):
     rewards = np.zeros((n_runs, env_steps))
     pop = ga_params['population']
 
@@ -126,8 +110,7 @@ if __name__ == '__main__':
                 mutation_rate=args.mutation_rate,
                 elitism=args.elitism)
 
-    #rewards = run_ga(env, args.runs, args.generations, ga_params)
-    rewards = run_ga2(env, args.runs, args.env_steps, ga_params)
+    rewards = run_ga(env, args.runs, args.env_steps, ga_params)
 
     generations = range(args.generations)
     means = rewards.mean(0)
