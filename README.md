@@ -1,5 +1,12 @@
 ## Multiagent route choice environment
 
+Contains code for:
+Inducing selfish agents towards social efficient solutions *by João Schapke and Ana Bazzan* (https://doi.org/10.5753/kdmile.2020.11953).
+
+Visualization of the environment:
+
+![Image of the environment](https://github.com/JSchapke/routing-environment/blob/master/visualization.png)
+
 Implemented solvers:
 - QLearning
 - Genetic Algorithm
