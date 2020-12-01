@@ -3,9 +3,10 @@
 Contains code for:
 Inducing selfish agents towards social efficient solutions *by João Schapke and Ana Bazzan* (https://doi.org/10.5753/kdmile.2020.11953).
 
-Visualization of the environment:
+Visualization of the environment used in the paper:
 
-![Image of the environment](https://github.com/JSchapke/routing-environment/blob/master/visualization.png)
+<img src="https://github.com/JSchapke/routing-environment/blob/master/visualization.png" alt="Image of the environment" width="350"/>
+
 
 Implemented solvers:
 - QLearning
